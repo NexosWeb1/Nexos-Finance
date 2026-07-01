@@ -7,6 +7,12 @@
   # (SUPABASE_URL, SUPABASE_ANON_KEY, USE_SUPABASE). Sem segredos no Git.
   command = "node scripts/gen-config.js"
 
+[build.environment]
+  # A anon key do Supabase é PÚBLICA por design (protegida por RLS) e é
+  # publicada no frontend de propósito. Diz ao secrets scanner do Netlify
+  # para não falhar o build ao encontrá-la no output.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
+
 # Cabeçalhos de segurança (dados sensíveis)
 [[headers]]
   for = "/*"
