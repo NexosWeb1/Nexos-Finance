@@ -1,0 +1,35 @@
+# Configuração de deploy do Netlify
+# Site estático (HTML/CSS/JS). Publica a raiz do projeto.
+
+[build]
+  publish = "."
+  # Gera js/config.js a partir das variáveis de ambiente do Netlify
+  # (SUPABASE_URL, SUPABASE_ANON_KEY, USE_SUPABASE). Sem segredos no Git.
+  command = "node scripts/gen-config.js"
+
+# Cabeçalhos de segurança (dados sensíveis)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# CSS/JS: revalidar sempre (evita o navegador rodar versões antigas em cache).
+# Como não há build com hash nos nomes, é mais seguro revalidar a cada carga.
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Página inicial é o login
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,101 @@
+/* ============================================================
+   Nexos Design Tokens
+   Marca monocromática (logo "N" geométrico) — tema dark premium.
+   Trocar a identidade visual = alterar estas variáveis.
+   ============================================================ */
+
+:root {
+  /* ---- Superfícies (dark) ---- */
+  --bg:            #0E0F13;
+  --bg-elev:       #16181D;
+  --bg-elev-2:     #1C1F26;
+  --bg-elev-3:     #23272F;
+  --bg-hover:      #20242B;
+
+  /* ---- Bordas ---- */
+  --border:        #262A31;
+  --border-strong: #343A44;
+
+  /* ---- Texto ---- */
+  --text:          #F4F6F8;
+  --text-muted:    #9AA1AC;
+  --text-dim:      #686F7A;
+  --text-inverse:  #0E0F13;
+
+  /* ---- Marca (monocromática) ---- */
+  --brand:         #FFFFFF;
+  --brand-soft:    rgba(255, 255, 255, 0.08);
+  --brand-softer:  rgba(255, 255, 255, 0.04);
+
+  /* ---- Acentos funcionais ---- */
+  --entrada:       #22C55E;  /* verde — entradas */
+  --entrada-bg:    rgba(34, 197, 94, 0.12);
+  --entrada-border:rgba(34, 197, 94, 0.30);
+
+  --saida:         #EF4444;  /* vermelho — saídas */
+  --saida-bg:      rgba(239, 68, 68, 0.12);
+  --saida-border:  rgba(239, 68, 68, 0.30);
+
+  --warning:       #F59E0B;  /* âmbar — em desenvolvimento */
+  --warning-bg:    rgba(245, 158, 11, 0.12);
+
+  --info:          #60A5FA;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+
+  /* ---- Status de demanda ---- */
+  --status-nao:    #9AA1AC;
+  --status-dev:    #F59E0B;
+  --status-ok:     #22C55E;
+
+  /* ---- Tipografia ---- */
+  /* Família única (Inter) para um visual sério e clean. Títulos se
+     diferenciam pelo peso e tracking, não por outra fonte. */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: var(--font-sans);
+
+  --fs-xs:   0.75rem;   /* 12 */
+  --fs-sm:   0.8125rem; /* 13 */
+  --fs-base: 0.875rem;  /* 14 */
+  --fs-md:   1rem;      /* 16 */
+  --fs-lg:   1.125rem;  /* 18 */
+  --fs-xl:   1.375rem;  /* 22 */
+  --fs-2xl:  1.75rem;   /* 28 */
+  --fs-3xl:  2.25rem;   /* 36 */
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* ---- Espaçamento ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* ---- Raios ---- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-full: 999px;
+
+  /* ---- Sombras ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.50);
+  --ring: 0 0 0 3px rgba(255, 255, 255, 0.12);
+
+  /* ---- Layout ---- */
+  --sidebar-w: 252px;
+  --topbar-h: 64px;
+  --maxw: 1400px;
+
+  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}

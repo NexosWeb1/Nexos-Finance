@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexos Finance</title>
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Guarda rápida só no modo local (mock). No modo Supabase, a
+    // verificação definitiva é assíncrona (requireAuth), evitando
+    // qualquer loop entre login e dashboard.
+    (function () {
+      var cfg = window.NEXOS_CONFIG || {};
+      if (!cfg.USE_SUPABASE && !sessionStorage.getItem("nexos.session")) {
+        location.replace("index.html");
+      }
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+  <div class="shell" style="visibility:hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="img/N%201.jpg" alt="Nexos" style="border-radius:8px" />
+        <div>
+          <div class="name">Nexos</div>
+          <div class="sub">Finance</div>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <a class="nav-item" href="#/inicio" id="nav-inicio"></a>
+        <a class="nav-item" href="#/financeiro" id="nav-financeiro"></a>
+        <a class="nav-item" href="#/demandas" id="nav-demandas"></a>
+        <a class="nav-item" href="#/relatorios" id="nav-relatorios"></a>
+        <a class="nav-item" href="#/contrato" id="nav-contrato"></a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <div class="avatar" id="userAvatar">N</div>
+          <div>
+            <div class="u-name" id="userName">—</div>
+            <div class="u-role" id="userRole">—</div>
+          </div>
+          <button class="logout" id="logoutBtn" title="Sair" aria-label="Sair"></button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="topbar">
+        <button class="btn btn-icon btn-ghost menu-btn" id="menuBtn" aria-label="Menu"></button>
+        <div>
+          <h1 id="pageTitle">—</h1>
+          <div class="page-sub" id="pageSub"></div>
+        </div>
+        <div class="spacer"></div>
+      </header>
+      <div id="viewRoot"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, logout } from "./js/auth.js";
+    import { initRouter } from "./js/router.js";
+    import { icons } from "./js/ui.js";
+
+    const u = await requireAuth(); // bloqueia e redireciona se não houver sessão
+    document.querySelector(".shell").style.visibility = "visible";
+
+    // Ícones de navegação
+    const navMeta = {
+      inicio:     { ic: icons.home,   label: "Início" },
+      financeiro: { ic: icons.wallet, label: "Entradas & Saídas" },
+      demandas:   { ic: icons.tasks,  label: "Demandas" },
+      relatorios: { ic: icons.chart,  label: "Relatórios" },
+      contrato:   { ic: icons.contract, label: "Gerar Contrato" },
+    };
+    for (const [key, m] of Object.entries(navMeta)) {
+      const a = document.getElementById("nav-" + key);
+      a.innerHTML = `${m.ic}<span>${m.label}</span>`;
+    }
+
+    document.getElementById("logoutBtn").innerHTML = icons.logout;
+    document.getElementById("menuBtn").innerHTML = icons.menu;
+
+    // Usuário
+    document.getElementById("userName").textContent = u?.name || "Usuário";
+    document.getElementById("userRole").textContent = u?.role || "";
+    document.getElementById("userAvatar").textContent = (u?.name || "N").charAt(0).toUpperCase();
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    // Sidebar mobile
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("backdrop");
+    const openMenu = () => { sidebar.classList.add("open"); backdrop.classList.add("show"); };
+    const closeMenu = () => { sidebar.classList.remove("open"); backdrop.classList.remove("show"); };
+    document.getElementById("menuBtn").addEventListener("click", openMenu);
+    backdrop.addEventListener("click", closeMenu);
+
+    // Router
+    const navItems = [...document.querySelectorAll(".nav-item")];
+    initRouter({
+      root: document.getElementById("viewRoot"),
+      titleEl: document.getElementById("pageTitle"),
+      subEl: document.getElementById("pageSub"),
+      navItems,
+      onNavigate: closeMenu,
+    });
+  </script>
+</body>
+</html>

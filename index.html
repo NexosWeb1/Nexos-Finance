@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar · Nexos Finance</title>
+  <meta name="description" content="Painel interno Nexos — controle financeiro e de demandas." />
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="auth">
+    <!-- Painel de marca -->
+    <aside class="auth-aside">
+      <div class="auth-brand">
+        <img src="img/N%201.jpg" alt="Nexos Finance" style="border-radius:10px" />
+        <span class="name">Nexos Finance</span>
+      </div>
+      <div class="auth-hero">
+        <h1>Seu negócio, organizado em tempo real.</h1>
+        <p>Controle de entradas e saídas, gestão de demandas e relatórios de rendimento — tudo em um só painel, privado e seguro.</p>
+      </div>
+      <div class="auth-foot">© <span id="year"></span> Nexos Finance · Painel interno</div>
+    </aside>
+
+    <!-- Formulário -->
+    <section class="auth-main">
+      <div class="auth-card">
+        <div class="logo-sm">
+          <img src="img/N%201.jpg" alt="Nexos Finance" style="border-radius:9px" />
+          <span class="name">Nexos Finance</span>
+        </div>
+        <h2>Bem-vindo de volta</h2>
+        <p class="lead">Entre para acessar o painel da empresa.</p>
+
+        <div class="auth-error" id="authError">
+          <span id="authErrorIc"></span>
+          <span id="authErrorMsg">Usuário ou senha inválidos.</span>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label class="label" for="user">E-mail</label>
+            <input class="input" id="user" name="user" type="text" autocomplete="username" placeholder="voce@empresa.com" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="pass">Senha</label>
+            <div class="password-wrap">
+              <input class="input" id="pass" name="pass" type="password" autocomplete="current-password" placeholder="••••••••" required />
+              <button type="button" class="toggle" id="togglePass" aria-label="Mostrar senha"></button>
+            </div>
+          </div>
+
+          <div class="auth-options">
+            <label class="switch" style="gap:8px">
+              <input type="checkbox" id="remember" />
+              <span class="track"></span>
+              <span class="text-muted" style="font-size:var(--fs-sm)">Manter conectado</span>
+            </label>
+            <a class="auth-link" href="#" id="forgot">Esqueci a senha</a>
+          </div>
+
+          <button class="btn btn-primary btn-block" id="submitBtn" type="submit">
+            <span id="submitLabel">Entrar</span>
+          </button>
+        </form>
+
+        <p class="text-dim" style="font-size:var(--fs-xs); margin-top:var(--sp-6); text-align:center">
+          Acesso restrito · dados confidenciais da Nexos
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { login, redirectIfAuthed } from "./js/auth.js";
+    import { icons, toast } from "./js/ui.js";
+
+    redirectIfAuthed();
+    document.getElementById("year").textContent = new Date().getFullYear();
+    document.getElementById("authErrorIc").innerHTML = icons.alert;
+
+    // Mostrar/ocultar senha
+    const passInput = document.getElementById("pass");
+    const toggle = document.getElementById("togglePass");
+    toggle.innerHTML = icons.eye;
+    let visible = false;
+    toggle.addEventListener("click", () => {
+      visible = !visible;
+      passInput.type = visible ? "text" : "password";
+      toggle.innerHTML = visible ? icons.eyeOff : icons.eye;
+    });
+
+    document.getElementById("forgot").addEventListener("click", (e) => {
+      e.preventDefault();
+      toast("Contate o administrador para redefinir sua senha.", "info");
+    });
+
+    const form = document.getElementById("loginForm");
+    const errBox = document.getElementById("authError");
+    const errMsg = document.getElementById("authErrorMsg");
+    const btn = document.getElementById("submitBtn");
+    const label = document.getElementById("submitLabel");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errBox.classList.remove("show");
+      const user = document.getElementById("user").value;
+      const pass = passInput.value;
+
+      if (!user.trim() || !pass) {
+        errMsg.textContent = "Preencha e-mail e senha.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      btn.disabled = true;
+      label.innerHTML = '<span class="spinner"></span>';
+      try {
+        const session = await login(user, pass);
+        if (session) {
+          label.textContent = "Entrando…";
+          window.location.href = "app.html";
+        } else {
+          errMsg.textContent = "Usuário ou senha inválidos.";
+          errBox.classList.add("show");
+          btn.disabled = false;
+          label.textContent = "Entrar";
+        }
+      } catch (err) {
+        errMsg.textContent = err?.message || "Erro ao entrar. Tente novamente.";
+        errBox.classList.add("show");
+        btn.disabled = false;
+        label.textContent = "Entrar";
+      }
+    });
+  </script>
+</body>
+</html>

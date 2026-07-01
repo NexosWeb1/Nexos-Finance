@@ -1,0 +1,40 @@
+# ============================================================
+# Credenciais e configuração local (NUNCA comitar)
+# ============================================================
+.env
+.env.*
+!.env.example
+js/config.js
+*.local
+
+# Chaves e certificados
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+*.keystore
+credentials*.json
+service-account*.json
+*secret*.json
+
+# Bancos locais / dumps (podem conter dados pessoais)
+*.sqlite
+*.db
+
+# Dependências e build
+node_modules/
+dist/
+build/
+.netlify/
+
+# Ferramentas de agente / config local
+.claude/
+.agents/
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
