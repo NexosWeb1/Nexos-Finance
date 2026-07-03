@@ -14,9 +14,10 @@
 import { el, icons, meses, diasSemana, toISO, fromISO } from "./ui.js";
 
 export class Calendar {
-  constructor({ onSelectDay, getDayDots, initialDate } = {}) {
+  constructor({ onSelectDay, getDayDots, onMonthChange, initialDate } = {}) {
     this.onSelectDay = onSelectDay || (() => {});
     this.getDayDots = getDayDots || (() => []);
+    this.onMonthChange = onMonthChange || (() => {});
     const base = initialDate ? fromISO(initialDate) : new Date();
     this.year = base.getFullYear();
     this.month = base.getMonth();
@@ -32,11 +33,13 @@ export class Calendar {
     this.month--;
     if (this.month < 0) { this.month = 11; this.year--; }
     this.render();
+    this.onMonthChange(this.year, this.month);
   }
   next() {
     this.month++;
     if (this.month > 11) { this.month = 0; this.year++; }
     this.render();
+    this.onMonthChange(this.year, this.month);
   }
 
   select(iso) {
@@ -89,6 +92,7 @@ export class Calendar {
     this.year = now.getFullYear();
     this.month = now.getMonth();
     this.select(toISO(now));
+    this.onMonthChange(this.year, this.month);
   }
 
   _cell(year, monthIdx, day, muted, todayISO) {

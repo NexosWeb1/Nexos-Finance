@@ -66,6 +66,8 @@ export async function mount(container) {
       return dots;
     },
     onSelectDay: (iso) => { selectedISO = iso; renderDay(); },
+    // ao trocar o mês, os KPIs do topo acompanham o mês visível
+    onMonthChange: () => renderKpis(),
   });
   calMount.appendChild(calendar.el);
   calendar.render();

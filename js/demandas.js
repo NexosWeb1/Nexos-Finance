@@ -1,9 +1,8 @@
 /* ============================================================
-   demandas.js — Tela Demandas
+   demandas.js — Tela Demandas (somente cards, sem calendário)
    ============================================================ */
-import { el, icons, fmtBRL, isoToBR, isoLongLabel, toISO, toast, confirmDialog } from "./ui.js";
+import { el, icons, fmtBRL, isoToBR, toISO, toast, confirmDialog } from "./ui.js";
 import { Demandas } from "./store.js";
-import { Calendar } from "./calendar.js";
 import { openFormModal } from "./modal.js";
 
 export const meta = {
@@ -12,26 +11,24 @@ export const meta = {
 };
 
 const STATUS = {
-  nao_iniciada:      { label: "Não iniciada",      badge: "badge-nao", dot: "nao" },
-  em_desenvolvimento:{ label: "Em desenvolvimento", badge: "badge-dev", dot: "dev" },
-  concluida:         { label: "Concluída",          badge: "badge-ok",  dot: "ok" },
+  nao_iniciada:      { label: "Não iniciada",       badge: "badge-nao", dot: "nao" },
+  em_desenvolvimento:{ label: "Em desenvolvimento",  badge: "badge-dev", dot: "dev" },
+  concluida:         { label: "Concluída",           badge: "badge-ok",  dot: "ok" },
 };
 const STATUS_ORDER = ["nao_iniciada", "em_desenvolvimento", "concluida"];
+const FILTERS = [
+  { key: "todas", label: "Todas" },
+  { key: "nao_iniciada", label: "Não iniciadas", dot: "nao" },
+  { key: "em_desenvolvimento", label: "Em desenvolvimento", dot: "dev" },
+  { key: "concluida", label: "Concluídas", dot: "ok" },
+];
 
 let items = [];
-let calendar;
-let selectedISO = toISO(new Date());
+let filter = "todas";
 let refs = {};
 let onChange;
 
 async function load() { items = await Demandas.all(); }
-// Uma demanda "ocupa" todos os dias entre início e fim (inclusive)
-const covers = (d, iso) => {
-  const start = d.dateStart || d.date;
-  const end = d.dateEnd || start;
-  return start <= iso && iso <= end;
-};
-const onDate = (iso) => items.filter((d) => covers(d, iso));
 
 export async function mount(container) {
   await load();
@@ -45,39 +42,16 @@ export async function mount(container) {
   );
 
   const kpis = el("div", { class: "grid-kpis", id: "demKpis" });
+  const listCard = el("div", { class: "card", id: "demListCard" });
 
-  const calCard = el("div", { class: "card" });
-  const calMount = el("div", {});
-  const legend = el("div", { class: "legend" },
-    legendItem("var(--status-nao)", "Não iniciada"),
-    legendItem("var(--status-dev)", "Em desenvolvimento"),
-    legendItem("var(--status-ok)", "Concluída"),
-  );
-  calCard.append(calMount, legend);
-
-  const dayCard = el("div", { class: "card" });
-  const grid = el("div", { class: "grid-2col" }, calCard, dayCard);
-
-  view.append(head, kpis, grid);
+  view.append(head, kpis, listCard);
   container.appendChild(view);
-  refs = { kpis, dayCard };
-
-  calendar = new Calendar({
-    initialDate: selectedISO,
-    getDayDots: (iso) => {
-      const seen = new Set();
-      onDate(iso).forEach((d) => seen.add(STATUS[d.status]?.dot || "nao"));
-      return STATUS_ORDER.map((s) => STATUS[s].dot).filter((dot) => seen.has(dot));
-    },
-    onSelectDay: (iso) => { selectedISO = iso; renderDay(); },
-  });
-  calMount.appendChild(calendar.el);
-  calendar.render();
+  refs = { kpis, listCard };
 
   renderKpis();
-  renderDay();
+  renderList();
 
-  onChange = async () => { await load(); calendar.render(); renderKpis(); renderDay(); };
+  onChange = async () => { await load(); renderKpis(); renderList(); };
   window.addEventListener("store:changed", onChange);
 }
 
@@ -96,34 +70,40 @@ function renderKpis() {
   );
 }
 
-function renderDay() {
-  const list = onDate(selectedISO).sort((a, b) =>
-    STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+function renderList() {
+  const filtered = filter === "todas" ? items : items.filter((d) => d.status === filter);
+  const sorted = [...filtered].sort((a, b) =>
+    STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
+    (a.dateStart || a.date || "").localeCompare(b.dateStart || b.date || ""));
 
-  const head = el("div", { class: "card-head" },
+  const seg = el("div", { class: "segmented dem-filter" },
+    ...FILTERS.map((fl) =>
+      el("button", { type: "button", class: filter === fl.key ? "active" : "",
+        onClick: () => { filter = fl.key; renderList(); } },
+        fl.dot ? el("span", { class: "dot", style: `background:var(--status-${fl.dot})` }) : null,
+        fl.label)));
+
+  const head = el("div", { class: "card-head", style: "flex-wrap:wrap" },
     el("div", {},
-      el("div", { class: "card-title" }, "Demandas do dia"),
-      el("div", { class: "card-sub" }, isoLongLabel(selectedISO)),
-    ),
-    el("button", { class: "btn btn-sm btn-secondary", onClick: () => openNew(selectedISO) },
-      el("span", { html: icons.plus }), "Adicionar"),
+      el("div", { class: "card-title" }, "Demandas"),
+      el("div", { class: "card-sub" }, `${filtered.length} demanda(s)`)),
+    seg,
   );
-  refs.dayCard.replaceChildren(head);
+  refs.listCard.replaceChildren(head);
 
-  if (!list.length) {
-    refs.dayCard.appendChild(emptyState("Nenhuma demanda neste dia.", "Cadastre uma demanda para começar."));
+  if (!sorted.length) {
+    refs.listCard.appendChild(emptyState("Nenhuma demanda.", "Cadastre uma demanda para começar."));
     return;
   }
 
-  const wrap = el("div", { class: "list" });
-  list.forEach((d) => wrap.appendChild(demandaRow(d)));
-  refs.dayCard.appendChild(wrap);
+  const grid = el("div", { class: "demanda-grid" });
+  sorted.forEach((d) => grid.appendChild(demandaRow(d)));
+  refs.listCard.appendChild(grid);
 }
 
 function demandaRow(d) {
   const st = STATUS[d.status] || STATUS.nao_iniciada;
 
-  // Select de status inline
   const statusSel = el("select", { class: "select demanda-status",
     onChange: async (e) => {
       await Demandas.setStatus(d.id, e.target.value);
@@ -149,17 +129,17 @@ function demandaRow(d) {
       el("div", { class: "demanda-actions" },
         el("button", { class: "btn btn-sm btn-ghost", onClick: () => openEdit(d) },
           el("span", { html: icons.edit, style: "width:15px" }), "Editar"),
-        el("button", { class: "btn btn-sm btn-ghost", title: "Excluir", html: icons.trash,
+        el("button", { class: "btn btn-icon btn-sm btn-ghost", title: "Excluir", html: icons.trash,
           onClick: () => remove(d) }),
       ),
     ),
   );
 }
 
-function openNew(date) {
+function openNew() {
   openFormModal({
     mode: "demanda",
-    defaultDate: date || selectedISO,
+    defaultDate: toISO(new Date()),
     onSubmit: async (values) => { await Demandas.create(values); },
   });
 }
@@ -182,10 +162,6 @@ function kpiCount(label, value, ic, color) {
     el("div", { class: "kpi-label" }, el("span", { html: ic, style: `width:15px;color:${color}` }), label),
     el("div", { class: "kpi-value" }, String(value)),
   );
-}
-function legendItem(color, label) {
-  return el("div", { class: "legend-item" },
-    el("span", { class: "swatch", style: `background:${color}` }), label);
 }
 function emptyState(title, sub) {
   return el("div", { class: "empty" },

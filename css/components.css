@@ -281,8 +281,13 @@
 .demanda-status { height: 32px; font-size: var(--fs-sm); width: auto; padding: 0 30px 0 12px; }
 .demanda-actions {
   display: flex; gap: var(--sp-1); justify-content: flex-end; align-items: center;
-  border-top: 1px solid var(--border); padding-top: var(--sp-3); margin-top: 2px;
+  border-top: 1px solid var(--border); padding-top: var(--sp-3); margin-top: auto;
 }
+.demanda-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--sp-3); }
+.demanda-grid .demanda-card { background: var(--bg-elev-2); }
+.dem-filter { flex-wrap: wrap; }
+.dem-filter button { display: inline-flex; align-items: center; }
+@media (max-width: 560px) { .dem-filter { width: 100%; overflow-x: auto; } }
 
 /* Empty state */
 .empty {
