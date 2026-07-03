@@ -22,6 +22,11 @@ service-account*.json
 *.sqlite
 *.db
 
+# Modelos de contrato com dados reais de clientes (não publicar)
+contrato_molde/
+*.docx
+*.doc
+
 # Dependências e build
 node_modules/
 dist/
