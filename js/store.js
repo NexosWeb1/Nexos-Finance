@@ -59,22 +59,32 @@ function txRow(d, { forInsert = false } = {}) {
   return r;
 }
 function fromRowDem(r) {
+  const start = r.date_start || r.date || null;   // r.date = compat com esquema antigo
+  const end = r.date_end || start;
   return {
-    id: r.id, title: r.title, description: r.description || "", date: r.date,
+    id: r.id, title: r.title, description: r.description || "",
+    dateStart: start, dateEnd: end,
     amount: r.amount || 0, status: r.status, attachment: r.attachment || null,
     createdAt: r.created_at,
   };
 }
 function demRow(d, { forInsert = false } = {}) {
   const r = {};
-  for (const k of ["title", "description", "date", "amount", "status", "attachment"])
+  for (const k of ["title", "description", "amount", "status", "attachment"])
     if (k in d) r[k] = d[k];
+  if ("dateStart" in d) r.date_start = d.dateStart;
+  if ("dateEnd" in d) r.date_end = d.dateEnd || d.dateStart || null;
   if (forInsert) {
     if (r.description === undefined) r.description = "";
     if (r.amount === undefined) r.amount = 0;
     if (r.status === undefined) r.status = "nao_iniciada";
+    if (r.date_end === undefined && r.date_start !== undefined) r.date_end = r.date_start;
   }
   return r;
+}
+/* Normaliza demandas antigas (campo `date`) para dateStart/dateEnd */
+function normalizeDem(d) {
+  return { ...d, dateStart: d.dateStart || d.date, dateEnd: d.dateEnd || d.dateStart || d.date };
 }
 
 /* ---------------- Transactions (entradas/saídas) ---------------- */
@@ -146,11 +156,11 @@ export const Transactions = {
 export const Demandas = {
   async all() {
     if (supaEnabled()) {
-      const { data, error } = await supa().from("demandas").select("*").order("date", { ascending: true });
+      const { data, error } = await supa().from("demandas").select("*").order("date_start", { ascending: true });
       if (error) { console.error("[store] demandas.all", error); return []; }
       return data.map(fromRowDem);
     }
-    return read(KEYS.demandas);
+    return read(KEYS.demandas).map(normalizeDem);
   },
 
   async create(data) {
@@ -163,7 +173,8 @@ export const Demandas = {
     const list = read(KEYS.demandas);
     const item = {
       id: uid(), title: data.title, description: data.description || "",
-      date: data.date, amount: data.amount || 0,
+      dateStart: data.dateStart, dateEnd: data.dateEnd || data.dateStart,
+      amount: data.amount || 0,
       status: data.status || "nao_iniciada", attachment: data.attachment || null,
       createdAt: new Date().toISOString(),
     };

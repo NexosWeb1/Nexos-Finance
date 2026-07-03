@@ -1,7 +1,7 @@
 /* ============================================================
    demandas.js — Tela Demandas
    ============================================================ */
-import { el, icons, fmtBRL, isoLongLabel, toISO, toast, confirmDialog } from "./ui.js";
+import { el, icons, fmtBRL, isoToBR, isoLongLabel, toISO, toast, confirmDialog } from "./ui.js";
 import { Demandas } from "./store.js";
 import { Calendar } from "./calendar.js";
 import { openFormModal } from "./modal.js";
@@ -25,7 +25,13 @@ let refs = {};
 let onChange;
 
 async function load() { items = await Demandas.all(); }
-const onDate = (iso) => items.filter((d) => d.date === iso);
+// Uma demanda "ocupa" todos os dias entre início e fim (inclusive)
+const covers = (d, iso) => {
+  const start = d.dateStart || d.date;
+  const end = d.dateEnd || start;
+  return start <= iso && iso <= end;
+};
+const onDate = (iso) => items.filter((d) => covers(d, iso));
 
 export async function mount(container) {
   await load();
@@ -128,10 +134,17 @@ function demandaRow(d) {
   const value = el("span", { class: "demanda-value" + (d.amount ? "" : " text-dim") },
     d.amount ? fmtBRL(d.amount) : "Sem valor");
 
+  const start = d.dateStart || d.date;
+  const end = d.dateEnd || start;
+  const periodo = start === end ? isoToBR(start) : `${isoToBR(start)} → ${isoToBR(end)}`;
+  const periodEl = el("div", { class: "demanda-period" },
+    el("span", { html: icons.calWeek, style: "width:13px" }), periodo);
+
   return el("div", { class: "demanda-card" },
     el("div", { class: "marker", style: `background:var(--status-${st.dot})` }),
     el("div", { class: "demanda-body" },
       el("div", { class: "demanda-title", title: d.title }, d.title),
+      periodEl,
       el("div", { class: "demanda-subrow" }, value, statusSel),
       el("div", { class: "demanda-actions" },
         el("button", { class: "btn btn-sm btn-ghost", onClick: () => openEdit(d) },

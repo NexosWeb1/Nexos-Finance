@@ -11,6 +11,7 @@ export const meta = {
 
 let txs = [];
 let year = new Date().getFullYear();
+let selMonth = new Date().getMonth();   // mês selecionado no detalhamento
 let barChart, lineChart;
 let refs = {};
 let onChange;
@@ -63,9 +64,18 @@ export async function mount(container) {
   );
   const charts = el("div", { class: "grid-charts" }, barCard, lineCard);
 
-  // Tabela mensal
+  // Tabela mensal (com seletor de mês)
+  const monthSelect = el("select", { class: "select", style: "width:auto",
+    onChange: (e) => { selMonth = Number(e.target.value); renderTable(annualSeries(txs, year)); } },
+    ...meses.map((m, i) => el("option", { value: i, selected: i === selMonth ? "selected" : null },
+      m.charAt(0).toUpperCase() + m.slice(1))));
   const tableCard = el("div", { class: "card" },
-    el("div", { class: "card-head" }, el("div", { class: "card-title" }, "Detalhamento mensal")),
+    el("div", { class: "card-head" },
+      el("div", { class: "card-title" }, "Detalhamento mensal"),
+      el("div", { style: "display:flex;align-items:center;gap:var(--sp-2)" },
+        el("span", { class: "label", style: "margin:0" }, "Mês"),
+        monthSelect),
+    ),
     el("div", { id: "monthTable" }),
   );
 
@@ -171,17 +181,9 @@ function renderCharts(data) {
   });
 }
 
-/* ---- Tabela ---- */
+/* ---- Tabela: mês selecionado + total do ano ---- */
 function renderTable(data) {
-  const rows = data.series.map((t, i) => {
-    const cls = t.saldo >= 0 ? "text-entrada" : "text-saida";
-    return el("div", { class: "list-item" },
-      el("div", { class: "li-main", style: "text-transform:capitalize;font-weight:var(--fw-medium)" }, meses[i]),
-      el("div", { class: "mono", style: "min-width:120px;text-align:right;color:var(--entrada)" }, fmtBRL(t.entradas)),
-      el("div", { class: "mono", style: "min-width:120px;text-align:right;color:var(--saida)" }, fmtBRL(t.saidas)),
-      el("div", { class: `mono ${cls}`, style: "min-width:130px;text-align:right;font-weight:var(--fw-semibold)" }, fmtBRL(t.saldo)),
-    );
-  });
+  const cell = (txt, extra) => el("div", { class: "mono", style: `min-width:120px;text-align:right;${extra || ""}` }, txt);
 
   const header = el("div", { class: "list-item", style: "background:transparent;border-color:transparent;color:var(--text-dim);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.04em" },
     el("div", { class: "li-main" }, "Mês"),
@@ -190,14 +192,23 @@ function renderTable(data) {
     el("div", { style: "min-width:130px;text-align:right" }, "Saldo"),
   );
 
+  const t = data.series[selMonth];
+  const clsM = t.saldo >= 0 ? "text-entrada" : "text-saida";
+  const monthRow = el("div", { class: "list-item" },
+    el("div", { class: "li-main", style: "text-transform:capitalize;font-weight:var(--fw-semibold)" }, meses[selMonth]),
+    cell(fmtBRL(t.entradas), "color:var(--entrada)"),
+    cell(fmtBRL(t.saidas), "color:var(--saida)"),
+    el("div", { class: `mono ${clsM}`, style: "min-width:130px;text-align:right;font-weight:var(--fw-semibold)" }, fmtBRL(t.saldo)),
+  );
+
   const total = el("div", { class: "list-item", style: "background:var(--bg-elev-2);font-weight:var(--fw-bold)" },
     el("div", { class: "li-main" }, "Total " + year),
-    el("div", { class: "mono", style: "min-width:120px;text-align:right;color:var(--entrada)" }, fmtBRL(data.entradas)),
-    el("div", { class: "mono", style: "min-width:120px;text-align:right;color:var(--saida)" }, fmtBRL(data.saidas)),
+    cell(fmtBRL(data.entradas), "color:var(--entrada)"),
+    cell(fmtBRL(data.saidas), "color:var(--saida)"),
     el("div", { class: `mono ${data.saldo >= 0 ? "text-entrada" : "text-saida"}`, style: "min-width:130px;text-align:right" }, fmtBRL(data.saldo)),
   );
 
-  refs.table.replaceChildren(el("div", { class: "list" }, header, ...rows, total));
+  refs.table.replaceChildren(el("div", { class: "list" }, header, monthRow, total));
 }
 
 function kpi(variant, ic, label, value, delta) {

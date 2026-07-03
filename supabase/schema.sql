@@ -21,7 +21,8 @@ create table if not exists public.demandas (
   id          uuid primary key default gen_random_uuid(),
   title       text not null,
   description text default '',
-  date        date not null,
+  date_start  date not null,
+  date_end    date,
   amount      integer not null default 0,
   status      text not null default 'nao_iniciada'
               check (status in ('nao_iniciada','em_desenvolvimento','concluida')),
@@ -37,7 +38,7 @@ create table if not exists public.settings (
 
 -- Índices úteis para os calendários/relatórios
 create index if not exists idx_transactions_date on public.transactions (date);
-create index if not exists idx_demandas_date on public.demandas (date);
+create index if not exists idx_demandas_date on public.demandas (date_start);
 
 -- ---------- Segurança (RLS) ----------
 -- Dados internos da empresa: qualquer usuário AUTENTICADO tem acesso total.

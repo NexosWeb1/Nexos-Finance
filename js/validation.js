@@ -25,34 +25,52 @@ export function validateForm(form) {
   let ok = true;
 
   const titleField = form.querySelector('[data-field="title"]');
-  const dateField = form.querySelector('[data-field="date"]');
   const amountField = form.querySelector('[data-field="amount"]');
+  const dateField = form.querySelector('[data-field="date"]');
+  const startField = form.querySelector('[data-field="dateStart"]');
+  const endField = form.querySelector('[data-field="dateEnd"]');
 
-  [titleField, dateField, amountField].forEach((f) => f && clearError(f));
+  [titleField, amountField, dateField, startField, endField].forEach((f) => f && clearError(f));
 
-  const titleInput = titleField.querySelector(".input");
-  const dateInput = dateField.querySelector(".input");
-  const amountInput = amountField.querySelector(".input");
-
-  const title = titleInput.value.trim();
+  const title = titleField.querySelector(".input").value.trim();
   if (!title) { setError(titleField, "Informe um título."); ok = false; }
 
-  const iso = brToISO(dateInput.value.trim());
-  if (!dateInput.value.trim()) { setError(dateField, "Informe a data."); ok = false; }
-  else if (!iso) { setError(dateField, "Data inválida. Use DD/MM/AAAA."); ok = false; }
-
+  const amountInput = amountField.querySelector(".input");
   const cents = parseBRLtoCents(amountInput.value);
   if (!amountInput.value.trim() || cents <= 0) { setError(amountField, "Informe um valor válido."); ok = false; }
 
-  return {
-    ok,
-    values: {
-      title,
-      date: iso,
-      amount: cents,
-      description: (form.querySelector('[data-field="description"] .textarea')?.value || "").trim(),
-    },
+  const values = {
+    title,
+    amount: cents,
+    description: (form.querySelector('[data-field="description"] .textarea')?.value || "").trim(),
   };
+
+  if (dateField) {
+    // Modo financeiro — data única
+    const di = dateField.querySelector(".input");
+    const iso = brToISO(di.value.trim());
+    if (!di.value.trim()) { setError(dateField, "Informe a data."); ok = false; }
+    else if (!iso) { setError(dateField, "Data inválida. Use DD/MM/AAAA."); ok = false; }
+    values.date = iso;
+  } else if (startField) {
+    // Modo demanda — início (obrigatório) e fim (opcional)
+    const si = startField.querySelector(".input");
+    const isoStart = brToISO(si.value.trim());
+    if (!si.value.trim()) { setError(startField, "Informe a data de início."); ok = false; }
+    else if (!isoStart) { setError(startField, "Data inválida. Use DD/MM/AAAA."); ok = false; }
+    values.dateStart = isoStart;
+
+    let isoEnd = "";
+    const ei = endField?.querySelector(".input");
+    if (ei && ei.value.trim()) {
+      isoEnd = brToISO(ei.value.trim());
+      if (!isoEnd) { setError(endField, "Data final inválida. Use DD/MM/AAAA."); ok = false; }
+      else if (isoStart && isoEnd < isoStart) { setError(endField, "A data final não pode ser antes do início."); ok = false; }
+    }
+    values.dateEnd = isoEnd || isoStart;
+  }
+
+  return { ok, values };
 }
 
 /* Habilita limpeza de erro ao digitar */

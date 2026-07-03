@@ -85,17 +85,7 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     descInput,
   );
 
-  // Data * e Valor *
-  const dateInput = el("input", { class: "input", type: "text" });
-  maskDate(dateInput);
-  if (record?.date) dateInput.value = isoToBR(record.date);
-  else if (defaultDate) dateInput.value = isoToBR(defaultDate);
-  const fDate = el("div", { class: "field", dataset: { field: "date" } },
-    el("label", { class: "label" }, "Data ", el("span", { class: "req" }, "*")),
-    dateInput,
-    el("div", { class: "field-error" }, "Informe a data."),
-  );
-
+  // Valor * (comum aos dois modos)
   const amountInput = el("input", { class: "input", type: "text" });
   maskCurrency(amountInput);
   if (record?.amount) setCurrencyValue(amountInput, record.amount);
@@ -105,7 +95,37 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     el("div", { class: "field-error" }, "Informe um valor válido."),
   );
 
-  const dateAmountRow = el("div", { class: "row" }, fDate, fAmount);
+  // Datas — financeiro: uma data; demanda: início e fim
+  const mkDate = (value) => {
+    const input = el("input", { class: "input", type: "text" });
+    maskDate(input);
+    if (value) input.value = isoToBR(value);
+    return input;
+  };
+  let dateAmountRow;
+  if (isFinance) {
+    const dateInput = mkDate(record?.date || defaultDate);
+    const fDate = el("div", { class: "field", dataset: { field: "date" } },
+      el("label", { class: "label" }, "Data ", el("span", { class: "req" }, "*")),
+      dateInput,
+      el("div", { class: "field-error" }, "Informe a data."),
+    );
+    dateAmountRow = el("div", { class: "row" }, fDate, fAmount);
+  } else {
+    const startInput = mkDate(record?.dateStart || defaultDate);
+    const fStart = el("div", { class: "field", dataset: { field: "dateStart" } },
+      el("label", { class: "label" }, "Data início ", el("span", { class: "req" }, "*")),
+      startInput,
+      el("div", { class: "field-error" }, "Informe a data de início."),
+    );
+    const endInput = mkDate(record?.dateEnd);
+    const fEnd = el("div", { class: "field", dataset: { field: "dateEnd" } },
+      el("label", { class: "label" }, "Data final"),
+      endInput,
+      el("div", { class: "field-error" }, "Data final inválida."),
+    );
+    dateAmountRow = el("div", {}, el("div", { class: "row" }, fStart, fEnd), fAmount);
+  }
 
   // Status (demanda) ou Recorrência (finance)
   let extraField;

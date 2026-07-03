@@ -150,9 +150,15 @@ function summaryRow(color, label, value, strong) {
 /* ---- Demandas da semana ---- */
 function renderWeek(now) {
   const { start, end } = weekRange(now);
+  const startISO = toISO(start), endISO = toISO(end);
+  // Demanda entra se o período (início..fim) cruza a semana
   const weekDems = dems
-    .filter((d) => { const dt = fromISO(d.date); return dt >= start && dt <= end; })
-    .sort((a, b) => a.date.localeCompare(b.date) || STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+    .filter((d) => {
+      const s = d.dateStart || d.date;
+      const e = d.dateEnd || s;
+      return s <= endISO && e >= startISO;
+    })
+    .sort((a, b) => (a.dateStart || a.date).localeCompare(b.dateStart || b.date) || STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
 
   const rangeLabel = `${isoToBR(toISO(start)).slice(0, 5)} – ${isoToBR(toISO(end)).slice(0, 5)}`;
 
@@ -180,7 +186,7 @@ function renderWeek(now) {
   const list = el("div", { class: "list" });
   weekDems.forEach((d) => {
     const st = STATUS[d.status] || STATUS.nao_iniciada;
-    const dt = fromISO(d.date);
+    const dt = fromISO(d.dateStart || d.date);
     list.appendChild(el("a", { class: "list-item", href: "#/demandas" },
       el("div", { class: "marker", style: `background:${st.color}` }),
       el("div", { style: "width:42px;text-align:center;flex-shrink:0" },
