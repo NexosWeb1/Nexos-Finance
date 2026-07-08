@@ -18,9 +18,15 @@ const STATUS_OPTS = [
   { value: "em_desenvolvimento", label: "Em desenvolvimento" },
   { value: "concluida", label: "Concluída" },
 ];
+const FREQ_OPTS = [
+  { value: "semanal", label: "Semanal" },
+  { value: "mensal", label: "Mensal" },
+  { value: "anual", label: "Anual" },
+];
 
 export function openFormModal({ mode = "finance", record = null, defaultDate = "", onSubmit }) {
   const isFinance = mode === "finance";
+  const isManut = mode === "manutencao";
   const isEdit = !!(record && record.id);
   let attachment = record?.attachment || null;
   let txType = record?.type || "entrada"; // só finance
@@ -28,11 +34,11 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
   const overlay = el("div", { class: "modal-overlay" });
   const modal = el("div", { class: "modal", role: "dialog", "aria-modal": "true" });
 
-  const title = isFinance
-    ? (isEdit ? "Editar lançamento" : "Novo lançamento")
+  const title = isFinance ? (isEdit ? "Editar lançamento" : "Novo lançamento")
+    : isManut ? (isEdit ? "Editar manutenção" : "Nova manutenção")
     : (isEdit ? "Editar demanda" : "Nova demanda");
-  const sub = isFinance
-    ? "Registre uma entrada ou saída financeira."
+  const sub = isFinance ? "Registre uma entrada ou saída financeira."
+    : isManut ? "Cadastre a manutenção recorrente de um projeto."
     : "Cadastre uma demanda e acompanhe seu status.";
 
   // ---- Head ----
@@ -70,12 +76,14 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     btnEntrada.style.flex = btnSaida.style.flex = "1";
   }
 
-  // Título *
-  const titleInput = el("input", { class: "input", type: "text", placeholder: "Ex.: Assinatura Adobe", value: record?.title || "" });
+  // Título / Nome do projeto *
+  const titleInput = el("input", { class: "input", type: "text",
+    placeholder: isManut ? "Ex.: Site Monsueto Turismo" : "Ex.: Assinatura Adobe",
+    value: (isManut ? record?.project : record?.title) || "" });
   const fTitle = el("div", { class: "field", dataset: { field: "title" } },
-    el("label", { class: "label" }, "Título ", el("span", { class: "req" }, "*")),
+    el("label", { class: "label" }, isManut ? "Nome do projeto " : "Título ", el("span", { class: "req" }, "*")),
     titleInput,
-    el("div", { class: "field-error" }, "Informe um título."),
+    el("div", { class: "field-error" }, isManut ? "Informe o nome do projeto." : "Informe um título."),
   );
 
   // Descrição
@@ -103,10 +111,10 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     return input;
   };
   let dateAmountRow;
-  if (isFinance) {
+  if (isFinance || isManut) {
     const dateInput = mkDate(record?.date || defaultDate);
     const fDate = el("div", { class: "field", dataset: { field: "date" } },
-      el("label", { class: "label" }, "Data ", el("span", { class: "req" }, "*")),
+      el("label", { class: "label" }, isManut ? "Data de pagamento " : "Data ", el("span", { class: "req" }, "*")),
       dateInput,
       el("div", { class: "field-error" }, "Informe a data."),
     );
@@ -127,10 +135,20 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     dateAmountRow = el("div", {}, el("div", { class: "row" }, fStart, fEnd), fAmount);
   }
 
-  // Status (demanda) ou Recorrência (finance)
+  // Status (demanda) / Recorrência (finance) / Frequência (manutenção)
   let extraField;
-  let statusSelect, recurringInput;
-  if (isFinance) {
+  let statusSelect, recurringInput, freqSelect;
+  if (isManut) {
+    freqSelect = el("select", { class: "select" },
+      ...FREQ_OPTS.map((o) => el("option", { value: o.value, selected: record?.frequency === o.value ? "selected" : null }, o.label)));
+    if (!record?.frequency) freqSelect.value = "mensal";
+    extraField = el("div", { class: "field" },
+      el("label", { class: "label" }, "Pagamento"),
+      freqSelect,
+      el("div", { class: "text-dim", style: "font-size:var(--fs-xs);margin-top:6px" },
+        "A cobrança será projetada no calendário conforme a frequência, a partir da data de pagamento."),
+    );
+  } else if (isFinance) {
     recurringInput = el("input", { type: "checkbox" });
     if (record?.recurring) recurringInput.checked = true;
     extraField = el("div", { class: "field" },
@@ -197,9 +215,13 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     uploadBox, fileInput,
   );
 
+  // Manutenção: sem descrição e sem anexo
   form.append(
     ...(typeSeg ? [typeSeg] : []),
-    fTitle, fDesc, dateAmountRow, extraField, fUpload,
+    fTitle,
+    ...(isManut ? [] : [fDesc]),
+    dateAmountRow, extraField,
+    ...(isManut ? [] : [fUpload]),
   );
   liveClear(form);
 
@@ -239,6 +261,9 @@ export function openFormModal({ mode = "finance", record = null, defaultDate = "
     if (isFinance) {
       payload.type = txType;
       payload.recurring = recurringInput.checked;
+    } else if (isManut) {
+      payload.project = values.title;
+      payload.frequency = freqSelect.value;
     } else {
       payload.status = statusSelect.value;
     }

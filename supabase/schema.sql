@@ -30,6 +30,17 @@ create table if not exists public.demandas (
   created_at  timestamptz not null default now()
 );
 
+create table if not exists public.maintenances (
+  id         uuid primary key default gen_random_uuid(),
+  project    text not null,
+  amount     integer not null,
+  frequency  text not null default 'mensal'
+             check (frequency in ('semanal','mensal','anual')),
+  date       date not null,               -- data do primeiro pagamento
+  attachment jsonb,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.settings (
   key        text primary key,
   value      jsonb,
@@ -45,6 +56,7 @@ create index if not exists idx_demandas_date on public.demandas (date_start);
 -- Visitantes anônimos não acessam nada.
 alter table public.transactions enable row level security;
 alter table public.demandas      enable row level security;
+alter table public.maintenances  enable row level security;
 alter table public.settings      enable row level security;
 
 drop policy if exists "auth full access" on public.transactions;
@@ -53,6 +65,10 @@ create policy "auth full access" on public.transactions
 
 drop policy if exists "auth full access" on public.demandas;
 create policy "auth full access" on public.demandas
+  for all to authenticated using (true) with check (true);
+
+drop policy if exists "auth full access" on public.maintenances;
+create policy "auth full access" on public.maintenances
   for all to authenticated using (true) with check (true);
 
 drop policy if exists "auth full access" on public.settings;

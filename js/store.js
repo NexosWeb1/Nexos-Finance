@@ -14,6 +14,7 @@ import { supa, supaEnabled } from "./db.js";
 const KEYS = {
   transactions: "nexos.transactions",
   demandas: "nexos.demandas",
+  maintenances: "nexos.maintenances",
 };
 
 /* ---- localStorage helpers ---- */
@@ -211,6 +212,74 @@ export const Demandas = {
   },
 };
 
+/* ---------------- Manutenções (pagamentos recorrentes por projeto) ---------------- */
+function fromRowMaint(r) {
+  return {
+    id: r.id, project: r.project, amount: r.amount, frequency: r.frequency,
+    date: r.date, attachment: r.attachment || null, createdAt: r.created_at,
+  };
+}
+function maintRow(d) {
+  const r = {};
+  for (const k of ["project", "amount", "frequency", "date", "attachment"])
+    if (k in d) r[k] = d[k];
+  return r;
+}
+
+export const Maintenances = {
+  async all() {
+    if (supaEnabled()) {
+      const { data, error } = await supa().from("maintenances").select("*").order("date", { ascending: true });
+      if (error) { console.error("[store] maintenances.all", error); return []; }
+      return data.map(fromRowMaint);
+    }
+    return read(KEYS.maintenances);
+  },
+
+  async create(data) {
+    if (supaEnabled()) {
+      const { data: ins, error } = await supa().from("maintenances").insert(maintRow(data)).select().single();
+      if (error) throw new Error(error.message);
+      emitChanged("maintenances");
+      return fromRowMaint(ins);
+    }
+    const list = read(KEYS.maintenances);
+    const item = {
+      id: uid(), project: data.project, amount: data.amount,
+      frequency: data.frequency || "mensal", date: data.date,
+      attachment: data.attachment || null, createdAt: new Date().toISOString(),
+    };
+    list.push(item);
+    write(KEYS.maintenances, list);
+    return item;
+  },
+
+  async update(id, data) {
+    if (supaEnabled()) {
+      const { error } = await supa().from("maintenances").update(maintRow(data)).eq("id", id);
+      if (error) throw new Error(error.message);
+      emitChanged("maintenances");
+      return true;
+    }
+    const list = read(KEYS.maintenances);
+    const i = list.findIndex((x) => x.id === id);
+    if (i === -1) return null;
+    list[i] = { ...list[i], ...data };
+    write(KEYS.maintenances, list);
+    return list[i];
+  },
+
+  async remove(id) {
+    if (supaEnabled()) {
+      const { error } = await supa().from("maintenances").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      emitChanged("maintenances");
+      return;
+    }
+    write(KEYS.maintenances, read(KEYS.maintenances).filter((x) => x.id !== id));
+  },
+};
+
 /* ---------------- Configurações (modelo de contrato etc.) ---------------- */
 const SETTINGS_KEY = "nexos.settings";
 export const Settings = {
@@ -271,6 +340,46 @@ export function occurrencesOnDate(transactions, iso) {
   const d = fromISO(iso);
   return occurrencesForMonth(transactions, d.getFullYear(), d.getMonth())
     .filter((o) => o.date === iso);
+}
+
+/* ---- Projeção de manutenções (semanal / mensal / anual) ---- */
+export function maintOccurrencesForMonth(maints, year, monthIdx) {
+  const out = [];
+  const monthStart = new Date(year, monthIdx, 1);
+  const monthEnd = new Date(year, monthIdx + 1, 0);
+  for (const m of maints) {
+    const start = fromISO(m.date);
+    if (start > monthEnd) continue; // ainda não começou
+
+    if (m.frequency === "semanal") {
+      let occ = new Date(start);
+      if (occ < monthStart) {
+        const weeks = Math.floor((monthStart - occ) / (7 * 86400000));
+        occ = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + weeks * 7);
+        while (occ < monthStart) occ = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + 7);
+      }
+      for (; occ <= monthEnd; occ = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + 7)) {
+        out.push({ ...m, date: toISO(occ), _sourceId: m.id });
+      }
+    } else if (m.frequency === "anual") {
+      if (monthIdx === start.getMonth() && year >= start.getFullYear()) {
+        const day = Math.min(start.getDate(), lastDayOfMonth(year, monthIdx));
+        out.push({ ...m, date: toISO(new Date(year, monthIdx, day)), _sourceId: m.id });
+      }
+    } else { // mensal (padrão)
+      const day = Math.min(start.getDate(), lastDayOfMonth(year, monthIdx));
+      const occ = new Date(year, monthIdx, day);
+      if (occ >= start) out.push({ ...m, date: toISO(occ), _sourceId: m.id });
+    }
+  }
+  return out;
+}
+export function maintOccurrencesOnDate(maints, iso) {
+  const d = fromISO(iso);
+  return maintOccurrencesForMonth(maints, d.getFullYear(), d.getMonth()).filter((o) => o.date === iso);
+}
+export function maintMonthTotal(maints, year, monthIdx) {
+  return maintOccurrencesForMonth(maints, year, monthIdx).reduce((s, o) => s + o.amount, 0);
 }
 
 export function monthlyTotals(transactions, year, monthIdx) {

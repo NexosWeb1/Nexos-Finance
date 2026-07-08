@@ -47,6 +47,11 @@
   --status-dev:    #F59E0B;
   --status-ok:     #22C55E;
 
+  /* ---- Frequência de manutenção ---- */
+  --freq-sem:      #60A5FA;  /* semanal */
+  --freq-men:      #F59E0B;  /* mensal */
+  --freq-anu:      #A78BFA;  /* anual */
+
   /* ---- Tipografia ---- */
   /* Família única (Inter) para um visual sério e clean. Títulos se
      diferenciam pelo peso e tracking, não por outra fonte. */

@@ -353,6 +353,9 @@
 .cal-dot.nao { background: var(--status-nao); }
 .cal-dot.dev { background: var(--status-dev); }
 .cal-dot.ok { background: var(--status-ok); }
+.cal-dot.sem { background: var(--freq-sem); }
+.cal-dot.men { background: var(--freq-men); }
+.cal-dot.anu { background: var(--freq-anu); }
 .cal-cell .cal-count {
   position: absolute; top: 4px; right: 6px; font-size: 10px; color: var(--text-dim);
 }

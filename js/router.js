@@ -9,6 +9,7 @@
 import * as home from "./home.js";
 import * as finance from "./finance.js";
 import * as demandas from "./demandas.js";
+import * as manutencoes from "./manutencoes.js";
 import * as reports from "./reports.js";
 import * as contrato from "./contrato.js";
 
@@ -16,6 +17,7 @@ const routes = {
   "/inicio": home,
   "/financeiro": finance,
   "/demandas": demandas,
+  "/manutencoes": manutencoes,
   "/relatorios": reports,
   "/contrato": contrato,
 };
