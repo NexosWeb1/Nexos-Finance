@@ -2,7 +2,7 @@
    manutencoes.js — Tela Manutenções
    Calendário com os pagamentos (semanal/mensal/anual) de cada projeto.
    ============================================================ */
-import { el, icons, fmtBRL, isoLongLabel, toISO, toast, confirmDialog } from "./ui.js";
+import { el, icons, fmtBRL, isoLongLabel, toISO, fromISO, toast, confirmDialog } from "./ui.js";
 import { Maintenances, maintOccurrencesForMonth, maintOccurrencesOnDate, maintMonthTotal } from "./store.js";
 import { Calendar } from "./calendar.js";
 import { openFormModal } from "./modal.js";
@@ -41,12 +41,14 @@ export async function mount(container) {
 
   const calCard = el("div", { class: "card" });
   const calMount = el("div", {});
-  const legend = el("div", { class: "legend" },
+  // Legenda de cores acima do calendário (bem visível)
+  const legend = el("div", { class: "legend maint-legend" },
+    el("span", { class: "legend-label" }, "Frequência:"),
     legendItem("var(--freq-sem)", "Semanal"),
     legendItem("var(--freq-men)", "Mensal"),
     legendItem("var(--freq-anu)", "Anual"),
   );
-  calCard.append(calMount, legend);
+  calCard.append(legend, calMount);
 
   const dayCard = el("div", { class: "card" });
   const grid = el("div", { class: "grid-2col" }, calCard, dayCard);
@@ -136,11 +138,24 @@ function maintRow(o) {
   );
 }
 
+/* Leva o calendário até o mês da data (para o pagamento ficar visível) */
+function goToDate(iso) {
+  if (!iso) return;
+  const d = fromISO(iso);
+  calendar.year = d.getFullYear();
+  calendar.month = d.getMonth();
+  selectedISO = iso;
+  calendar.selected = iso;
+  calendar.render();
+  renderKpis();
+  renderDay();
+}
+
 function openNew(date) {
   openFormModal({
     mode: "manutencao",
     defaultDate: date || selectedISO,
-    onSubmit: async (values) => { await Maintenances.create(values); },
+    onSubmit: async (values) => { await Maintenances.create(values); goToDate(values.date); },
   });
 }
 function openEdit(o) {
@@ -148,7 +163,7 @@ function openEdit(o) {
   openFormModal({
     mode: "manutencao",
     record: source,
-    onSubmit: async (values) => { await Maintenances.update(source.id, values); },
+    onSubmit: async (values) => { await Maintenances.update(source.id, values); goToDate(values.date); },
   });
 }
 async function remove(o) {
