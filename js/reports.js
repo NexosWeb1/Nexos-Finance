@@ -2,7 +2,7 @@
    reports.js — Relatórios mensal e anual (tempo real) + export
    ============================================================ */
 import { el, icons, fmtBRL, fmtBRLshort, mesesAbbr, meses, toast } from "./ui.js";
-import { Transactions, annualSeries, monthlyTotals, dataYears } from "./store.js";
+import { Transactions, Maintenances, annualSeries, maintMonthTotal, dataYears } from "./store.js";
 
 export const meta = {
   title: "Relatórios",
@@ -10,11 +10,25 @@ export const meta = {
 };
 
 let txs = [];
+let maints = [];
 let year = new Date().getFullYear();
 let selMonth = new Date().getMonth();   // mês selecionado no detalhamento
 let barChart, lineChart;
 let refs = {};
 let onChange;
+
+/* Série anual combinando transações + manutenções (receita recorrente).
+   Os pagamentos de manutenção projetados no mês entram como ENTRADAS. */
+function combinedAnnual(y) {
+  const base = annualSeries(txs, y);
+  const series = base.series.map((mt, i) => {
+    const entradas = mt.entradas + maintMonthTotal(maints, y, i);
+    return { entradas, saidas: mt.saidas, saldo: entradas - mt.saidas, count: mt.count };
+  });
+  const entradas = series.reduce((s, x) => s + x.entradas, 0);
+  const saidas = series.reduce((s, x) => s + x.saidas, 0);
+  return { series, entradas, saidas, saldo: entradas - saidas };
+}
 
 // Cores lidas do tema
 const C = {
@@ -22,13 +36,16 @@ const C = {
   grid: "rgba(255,255,255,0.06)", text: "#9AA1AC",
 };
 
-async function load() { txs = await Transactions.all(); }
+async function load() {
+  txs = await Transactions.all();
+  maints = await Maintenances.all();
+}
 
 export async function mount(container) {
   await load();
   const view = el("div", { class: "view" });
 
-  const years = dataYears(txs);
+  const years = dataYears([...txs, ...maints]);
   if (!years.includes(year)) year = years[0];
 
   const yearSelect = el("select", { class: "select", style: "width:auto",
@@ -66,7 +83,7 @@ export async function mount(container) {
 
   // Tabela mensal (com seletor de mês)
   const monthSelect = el("select", { class: "select", style: "width:auto",
-    onChange: (e) => { selMonth = Number(e.target.value); renderTable(annualSeries(txs, year)); } },
+    onChange: (e) => { selMonth = Number(e.target.value); renderTable(combinedAnnual(year)); } },
     ...meses.map((m, i) => el("option", { value: i, selected: i === selMonth ? "selected" : null },
       m.charAt(0).toUpperCase() + m.slice(1))));
   const tableCard = el("div", { class: "card" },
@@ -103,7 +120,7 @@ export function unmount() {
 }
 
 function renderAll() {
-  const data = annualSeries(txs, year);
+  const data = combinedAnnual(year);
   renderKpis(data);
   renderCharts(data);
   renderTable(data);
@@ -223,7 +240,7 @@ function kpi(variant, ic, label, value, delta) {
    Exportação — PDF (jsPDF via CDN) e Word (.doc HTML)
    ============================================================ */
 function buildReportData() {
-  const data = annualSeries(txs, year);
+  const data = combinedAnnual(year);
   return { data, year, generatedAt: new Date().toLocaleString("pt-BR") };
 }
 
